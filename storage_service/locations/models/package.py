@@ -94,7 +94,8 @@ class Package(models.Model):
 
     PACKAGE_TYPE_CAN_DELETE = (AIP, AIC, TRANSFER)
     PACKAGE_TYPE_CAN_EXTRACT = (AIP, AIC)
-    PACKAGE_TYPE_CAN_RECOVER = (AIP)
+    PACKAGE_TYPE_CAN_RECOVER = (AIP, AIC)
+    PACKAGE_TYPE_CAN_REINGEST = (AIP, AIC)
 
     # Compression options
     COMPRESSION_7Z_BZIP = '7z with bzip'
@@ -107,6 +108,11 @@ class Package(models.Model):
         COMPRESSION_TAR,
         COMPRESSION_TAR_BZIP2,
     )
+
+    # Reingest type options
+    METADATA_ONLY = 'metadata'
+    OBJECTS = 'objects'
+    REINGEST_CHOICES = (METADATA_ONLY, OBJECTS)
 
     class Meta:
         verbose_name = "Package"
@@ -819,6 +825,21 @@ class Package(models.Model):
         self.status = self.DELETED
         self.save()
         return True, error
+
+    def start_reingest(self, pipeline, reingest_type):
+        """
+        Copies this package to `pipeline` for reingest.
+
+        `reingest_type` determines what files are copied.  Returns an HTTP error
+        code and an optional message description.
+        """
+        if self.package_type not in Package.PACKAGE_TYPE_CAN_REINGEST:
+            return {'error': True, 'status_code': 405,
+            'message': 'Package with type {} cannot be re-ingested.'.format(self.get_package_type_display())}
+
+        # TODO Stub
+
+        return {'error': False, 'status_code': 202, 'message': 'Package {} sent to pipeline {} for re-ingest'.format(self.uuid, pipeline)}
 
     # SWORD-related methods
     def has_been_submitted_for_processing(self):
