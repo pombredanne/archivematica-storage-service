@@ -4,6 +4,7 @@ import logging
 from lxml import etree
 import os
 import re
+import requests
 import shutil
 import subprocess
 import tempfile
@@ -895,7 +896,7 @@ class Package(models.Model):
             return {'error': True, 'status_code': 412,
                 'message': 'No currently processing Location is associated with pipeline {}'.format(pipeline.uuid)}
         # Move-from-SS to move to CP Loc
-        dest_basepath = os.path.join(currently_processing.relative_path, 'watchedDirectories', 'system', 'reingestAIP', '')
+        dest_basepath = os.path.join(currently_processing.relative_path, 'tmp', '')
         for path in reingest_files:
             ss_internal.space.move_to_storage_service(
                 source_path=os.path.join(ss_internal.relative_path, path),
@@ -909,6 +910,25 @@ class Package(models.Model):
 
         # Delete local copy of extraction
         shutil.rmtree(dest_path)
+
+        # Call reingest AIP API
+        reingest_url = 'http://' + pipeline.remote_name + '/api/sip/reingest'
+        params = {
+            'username': pipeline.api_username,
+            'api_key': pipeline.api_key,
+            'name': relative_path,
+            'uuid': self.uuid,
+        }
+        logging.debug('Reingest: URL: %s; params: %s', reingest_url, params)
+        try:
+            response = requests.post(reingest_url, data=params, allow_redirects=True)
+        except requests.exceptions.RequestException:
+            logging.exception('Unable to connect to pipeline %s', pipeline)
+            return {'error': True, 'status_code': 502,
+                'message': 'Unable to connect to pipeline'}
+        if response.status_code != requests.codes.ok:
+            return {'error': True, 'status_code': 502,
+                'message': 'Error from pipeline: %s' % response.json().get('message', 'Unknown error')}
 
         self.save()
 
