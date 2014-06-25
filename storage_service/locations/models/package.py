@@ -904,7 +904,7 @@ class Package(models.Model):
             )
 
         # Delete local copy of extraction
-        if self.local_path_location != self.current_location or self.local_path != self.full_path:
+        if self.local_path != self.full_path:
             shutil.rmtree(local_path)
         if temp_dir:
             shutil.rmtree(temp_dir)
@@ -1054,6 +1054,11 @@ class Package(models.Model):
             source_path=dest_path,  # This should include Location.path
             destination_path=os.path.join(reingest_location.relative_path, dest_path),
         )
+
+        # Delete old copy of AIP if different
+        if self.current_path != dest_path or self.current_location != reingest_location:
+            self.current_location.space.delete_path(self.full_path)
+
         self.current_location = reingest_location
         self.current_path = dest_path
 
