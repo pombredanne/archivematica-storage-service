@@ -925,8 +925,13 @@ class Package(models.Model):
             return {'error': True, 'status_code': 502,
                 'message': 'Unable to connect to pipeline'}
         if response.status_code != requests.codes.ok:
+            try:
+                json_error = response.json().get('message',
+                    'Error in approve reingest API.')
+            except ValueError:  # Failed to decode JSON
+                json_error = 'Error in approve reingest API.'
             return {'error': True, 'status_code': 502,
-                'message': 'Error from pipeline: %s' % response.json().get('message', 'Unknown error')}
+                'message': 'Error from pipeline: %s' % json_error}
 
         self.save()
 
