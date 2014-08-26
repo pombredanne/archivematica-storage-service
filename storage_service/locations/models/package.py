@@ -949,9 +949,6 @@ class Package(models.Model):
         ss_internal = Location.objects.get(purpose=Location.STORAGE_SERVICE_INTERNAL)
         internal_space = ss_internal.space
         dest_space = reingest_location.space
-        print 'src_space', src_space
-        print 'internal_space', internal_space
-        print 'dest_space', dest_space
 
         # Copy actual AIP to ss_internal, extract if needed
         path, temp_dir = self.extract_file()  # AIP always copied
@@ -968,9 +965,6 @@ class Package(models.Model):
         reingest_full_path = os.path.join(ss_internal.full_path, reingest_path)
 
         # Extract if needed
-        # HOW?
-        # Move extract code to utils, call from here and extract_file?
-        # FIXME this is extracting on top of original AIP - extract to temp dir?
         if os.path.isfile(reingest_full_path):
             # Extract
             command = ['unar', '-force-overwrite', '-o', ss_internal.full_path, reingest_full_path]
@@ -984,6 +978,7 @@ class Package(models.Model):
                 j = json.loads(output)
                 bname = sorted([d['XADFileName'] for d in j['lsarContents'] if d.get('XADIsDirectory', False)], key=len)[0]
             except (subprocess.CalledProcessError, ValueError):
+                # FIXME
                 print 'I dunno what to do here'
                 bname = os.path.splitext(os.path.basename(reingest_full_path))[0]
             else:
@@ -1009,7 +1004,9 @@ class Package(models.Model):
         # Replace new metadata files
         reingest_metadata_dir = os.path.join(reingest_full_path, 'data', 'objects', 'metadata')
         original_metadata_dir = os.path.join(path, 'data', 'objects', 'metadata')
-        distutils.dir_util.copy_tree(reingest_metadata_dir, original_metadata_dir)
+        if os.path.isdir(reingest_metadata_dir):
+            distutils.dir_util.copy_tree(reingest_metadata_dir,
+                original_metadata_dir)
 
         # Update bag payload and verify
         bag = bagit.Bag(path)
