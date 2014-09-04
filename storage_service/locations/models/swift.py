@@ -63,7 +63,17 @@ class Swift(models.Model):
         return self._connection
 
     def browse(self, path):
-        pass
+        # Can only browse directories. Add a trailing / to make Swift happy
+        if not path.endswith('/'):
+            path += '/'
+        _, content = self.connection.get_container(self.container, delimiter='/', prefix=path)
+        # Replace path, strip trailing /, sort
+        directories = sorted([x['subdir'].replace(path, '', 1).rstrip('/') for x in content if x.get('subdir')])
+        entries = [x['name'].replace(path, '', 1) for x in content if x.get('name')]
+        if directories:
+            entries.extend(directories)
+        entries.sort()
+        return {'directories': directories, 'entries': entries}
 
     def delete_path(self, delete_path):
         # Try to delete object
