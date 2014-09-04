@@ -1,5 +1,6 @@
 # stdlib, alphabetical
 import logging
+import os
 
 # Core Django, alphabetical
 from django.db import models
@@ -10,6 +11,7 @@ import swiftclient
 # This project, alphabetical
 
 # This module, alphabetical
+from . import StorageException
 from location import Location
 
 LOGGER = logging.getLogger(__name__)
@@ -72,4 +74,26 @@ class Swift(models.Model):
 
     def move_from_storage_service(self, source_path, destination_path):
         """ Moves self.staging_path/src_path to dest_path. """
-        pass
+        if os.path.isdir(source_path):
+            # Both source and destination paths should end with /
+            destination_path = os.path.join(destination_path, '')
+            # Swift does not accept folders, so upload each file individually
+            for path, _, files in os.walk(source_path):
+                for basename in files:
+                    entry = os.path.join(path, basename)
+                    dest = entry.replace(source_path, destination_path, 1)
+                    with open(entry, 'rb') as f:
+                        self.connection.put_object(
+                            self.container,
+                            obj=dest,
+                            contents=f,
+                        )
+        elif os.path.isfile(source_path):
+            with open(source_path, 'rb') as f:
+                self.connection.put_object(
+                    self.container,
+                    obj=destination_path,
+                    contents=f,
+                )
+        else:
+            raise StorageException('%s is neither a file nor a directory, may not exist' % source_path)
