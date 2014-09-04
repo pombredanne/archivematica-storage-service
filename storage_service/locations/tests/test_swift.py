@@ -57,3 +57,14 @@ class TestSwift(TestCase):
     #     open('test.txt', 'w').write('test file\n')
     #     with pytest.raises(swiftclient.exceptions.ClientException):
     #         self.swift_object.move_from_storage_service('test.txt', '/test.txt')
+
+    @vcr.use_cassette('locations/fixtures/vcr_cassettes/swift_delete.yaml')
+    def test_delete_path(self):
+        self.swift_object.delete_path('/test.txt')
+
+    @vcr.use_cassette('locations/fixtures/vcr_cassettes/swift_delete_folder.yaml')
+    def test_delete_folder(self):
+        self.swift_object.delete_path('/aips/c521/')
+
+    def test_update_package_status(self):
+        pass
