@@ -24,6 +24,23 @@ class TestSwift(TestCase):
         if self.swift_object.auth_version in ("2", "2.0", 2):
             assert self.swift_object.tenant
 
+    @vcr.use_cassette('locations/fixtures/vcr_cassettes/swift_move_to.yaml')
+    def test_move_to_ss(self):
+        self.swift_object.move_to_storage_service('/test.txt', 'test.txt', None)
+        assert open('test.txt', 'r').read() == 'test file\n'
+        os.remove('test.txt')
+
+    @vcr.use_cassette('locations/fixtures/vcr_cassettes/swift_move_folder_to.yaml')
+    def test_move_folder_to_ss(self):
+        self.swift_object.move_to_storage_service('/ts/test/', 'test1234/', None)
+        assert os.path.isdir('test1234')
+        assert os.path.isdir('test1234/folder1')
+        assert os.path.isfile('test1234/folder1/file1')
+        assert open('test1234/folder1/file1', 'r').read() == 'file1\n'
+        assert os.path.isfile('test1234/file2')
+        assert open('test1234/file2', 'r').read() == 'file2\n'
+        shutil.rmtree('test1234')
+
     # FIXME capturing the cassette causes an exception
     # @vcr.use_cassette('locations/fixtures/vcr_cassettes/swift_move_from.yaml')
     # def test_move_from_ss(self):
