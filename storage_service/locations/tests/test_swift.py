@@ -38,6 +38,13 @@ class TestSwift(TestCase):
         assert open('test.txt', 'r').read() == 'test file\n'
         os.remove('test.txt')
 
+    @vcr.use_cassette('locations/fixtures/vcr_cassettes/swift_move_to_broken.yaml')
+    def test_move_to_ss_broken(self):
+        # TODO this should fail more visibly
+        self.swift_object.move_to_storage_service('/test.txt', 'test.txt', None)
+        assert open('test.txt', 'r').read() == 'test file\n'
+        os.remove('test.txt')
+
     @vcr.use_cassette('locations/fixtures/vcr_cassettes/swift_move_folder_to.yaml')
     def test_move_folder_to_ss(self):
         self.swift_object.move_to_storage_service('/ts/test/', 'test1234/', None)
@@ -49,15 +56,17 @@ class TestSwift(TestCase):
         assert open('test1234/file2', 'r').read() == 'file2\n'
         shutil.rmtree('test1234')
 
-    # FIXME capturing the cassette causes an exception
+    # FIXME capturing any move_from cassette causes an exception
     # @vcr.use_cassette('locations/fixtures/vcr_cassettes/swift_move_from.yaml')
     # def test_move_from_ss(self):
     #     # create test.txt
     #     open('test.txt', 'w').write('test file\n')
     #     self.swift_object.move_from_storage_service('test.txt', '/test.txt')
-    #     # Unsure how to verify.  Will raise exception if fails?
+    #     # Verify
+    #     resp = self.swift_object.browse('/')
+    #     assert 'test.txt' in resp['entries']
+    #     # Cleanup
     #     os.remove('test.txt')
-    #     # Remove me
     #     self.swift_object.delete_path('/test.txt')
     #
     # @vcr.use_cassette('locations/fixtures/vcr_cassettes/swift_move_from_already_exists.yaml')
