@@ -82,6 +82,7 @@ class Space(models.Model):
     uuid = UUIDField(editable=False, unique=True, version=4,
         help_text="Unique identifier")
 
+    ARKIVUM = 'ARKIVUM'
     DURACLOUD = 'DC'
     FEDORA = 'FEDORA'
     LOCAL_FILESYSTEM = 'FS'
@@ -90,6 +91,7 @@ class Space(models.Model):
     PIPELINE_LOCAL_FS = 'PIPE_FS'
     OBJECT_STORAGE = {DURACLOUD}
     ACCESS_PROTOCOL_CHOICES = (
+        (ARKIVUM, 'Arkivum'),
         (DURACLOUD, 'DuraCloud'),
         (FEDORA, "FEDORA via SWORD2"),
         (LOCAL_FILESYSTEM, "Local Filesystem"),

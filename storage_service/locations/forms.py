@@ -84,6 +84,12 @@ class SpaceForm(forms.ModelForm):
             return self.cleaned_data['access_protocol']
 
 
+class ArkivumForm(forms.ModelForm):
+    class Meta:
+        model = models.Arkivum
+        fields = ()
+
+
 class DuracloudForm(forms.ModelForm):
     class Meta:
         model = models.Duracloud
