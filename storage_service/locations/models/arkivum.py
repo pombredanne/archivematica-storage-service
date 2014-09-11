@@ -15,6 +15,14 @@ from location import Location
 class Arkivum(models.Model):
     space = models.OneToOneField('Space', to_field='uuid')
 
+    host = models.CharField(max_length=256,
+        help_text='Hostname of the Arkivum web instance. Eg. arkivum.example.com:8443')
+    # Optionally be able to rsync
+    remote_user = models.CharField(max_length=64, null=True, blank=True,
+        help_text="Username on the remote machine accessible via passwordless ssh. (Optional)")
+    remote_name = models.CharField(max_length=256, null=True, blank=True,
+        help_text="Name or IP of the remote machine. (Optional)")
+
     class Meta:
         verbose_name = "Arkivum"
         app_label = 'locations'
