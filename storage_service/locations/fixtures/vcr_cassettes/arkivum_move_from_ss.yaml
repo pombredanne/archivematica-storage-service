@@ -1,0 +1,56 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      User-Agent: [python-requests/2.3.0 CPython/2.7.3 Linux/3.5.0-23-generic]
+    method: GET
+    uri: https://198.50.244.148:8443/files/
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAAJ2SwYrbMBCGX2XRtXEi2bJs+VZYFgJtKDQ9lRLk0XhjqtjGViBpyLt35GSJ280h
+        7cma8czon1/fiVWts9h/MX7LCrZgM9aZHht/STR752asqh0OrPh+YgYAhwEtlcZcyIjrSMRrkRdS
+        FamYK80/cME5TTF734JD01Op7/dIKejR+Ed6bd0j+LY/3npxANOh3XRXnX6g5La2FhsKK+OGUFVD
+        G8JF+A4LoQ5CLS77zbvmNRSE20WW2gwNRDrN80gmsYjytCqjBBSouOKlSONQ27zi4L960kxN31bL
+        1XJNadeCcZM7d62tq/qRtRqzC5NG6ReTKdIlgimliTKLSSQ16dCQZRHyRILIueYqGesne5OPtm3c
+        xJ4eO1eD8XXbvAnuSdKMDfWvENDJH7twehntuMab0Q92np3Y5+cUtgg/h/2OUiVPJSdjYlCqtJAD
+        QKqzCm2lwKZVuPIeCnwt4kLqQtLeSv4bCvd7pyi8Of6OBXqmuT/4R4nwePCbzpm6+YMKa3QuM05v
+        oIiK3MaRESlBAiKLS5EonYh3VLwsVx8/TaC4rnePifv7vTFxW+G/ybiNeIgPsytHDq6ECP5UHmnG
+        jZQ12fT03MJ+F/RMgQkGLkYD2fkH/Wg9uf3XmPNvWzorvVoEAAA=
+    headers:
+      accept-ranges: [bytes]
+      content-encoding: [gzip]
+      content-type: [application/json; charset=ISO-8859-1]
+      date: ['Fri, 12 Sep 2014 17:46:53 GMT']
+      server: [A-Stor/2.2.8.8348 (Noelios-Restlet-Engine/1.1.10)]
+      transfer-encoding: [chunked]
+    status: {code: 200, message: OK}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      User-Agent: [python-requests/2.3.0 CPython/2.7.3 Linux/3.5.0-23-generic]
+    method: GET
+    uri: https://198.50.244.148:8443/files/ts
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAAAI1QTWsCMRT8K5Jru26yX+56K/TSQ0FsL6UUySZvbSAmS/IErfjf+2KxFqHgKbx5
+        My8zc2CDtxrCQuInm7McI7tnowzg8AwRMBgLkc3fD0wqBTGCpkXBRZXxLhPFq2jnVTOvi2kpujsu
+        OCeN3KJXFmQgKoYtEKQCSLxFq00AhT7siTpIG5MYopIj6NX46zTfOoMIEae4Q2J8Gq3B/ZEY5dOY
+        pzfmotmJJkfY4Wq00rjp6NaJlPzwElTZ1LOsbqo2q9qeZ70qyF9ZCNFXQ9OJIXHdmr57QUpBosXy
+        6flh+Ua49UraS86N12YwtwR1cpMuXQX56Z9wMav1DKTKurolW2Qma+uhz0rVqKYYeC/q4sT/rxIq
+        XHtn9xdvAUZrlETj3TlHIKf3LJqvNAg+6fd0gRDcjwl5pcYmj15tN8nUD7w6tZa6zE9dsuMHLTxS
+        8Vdnjt9RJvZEYgIAAA==
+    headers:
+      accept-ranges: [bytes]
+      content-encoding: [gzip]
+      content-type: [application/json; charset=ISO-8859-1]
+      date: ['Fri, 12 Sep 2014 17:46:54 GMT']
+      server: [A-Stor/2.2.8.8348 (Noelios-Restlet-Engine/1.1.10)]
+      transfer-encoding: [chunked]
+    status: {code: 200, message: OK}
+version: 1

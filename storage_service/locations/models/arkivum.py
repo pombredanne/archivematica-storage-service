@@ -1,5 +1,8 @@
 # stdlib, alphabetical
+import json
 import logging
+import os
+import requests
 
 # Core Django, alphabetical
 from django.db import models
@@ -7,6 +10,7 @@ from django.db import models
 # Third party dependencies, alphabetical
 
 # This project, alphabetical
+from common import utils
 
 # This module, alphabetical
 from location import Location
@@ -45,7 +49,26 @@ class Arkivum(models.Model):
 
     def move_from_storage_service(self, source_path, destination_path):
         """ Moves self.staging_path/src_path to dest_path. """
-        pass
+        # Rsync to Arkivum watched directory
+        if self.remote_user and self.remote_name:
+            rsync_dest = "{user}@{host}:{path}".format(
+                user=self.remote_user,
+                host=self.remote_name,
+                path=destination_path)
+            # Create remote directories
+            command = 'mkdir -p {}'.format(os.path.dirname(destination_path))
+            ssh_command = ["ssh", self.remote_user + "@" + self.remote_name, command]
+            logging.info("ssh+mkdir command: {}".format(ssh_command))
+            try:
+                subprocess.check_call(ssh_command)
+            except subprocess.CalledProcessError as e:
+                logging.warning("ssh+mkdir failed: {}".format(e))
+                raise
+        else:
+            rsync_dest = destination_path
+            self.space._create_local_directory(destination_path)
+        self.space._move_rsync(source_path, rsync_dest)
+
 
     def update_package_status(self, package):
         pass
