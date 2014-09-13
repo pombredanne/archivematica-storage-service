@@ -13,6 +13,7 @@ from django.db import models
 from common import utils
 
 # This module, alphabetical
+from . import StorageException
 from location import Location
 
 
@@ -69,6 +70,41 @@ class Arkivum(models.Model):
             self.space._create_local_directory(destination_path)
         self.space._move_rsync(source_path, rsync_dest)
 
+    def post_move_from_storage_service(self, staging_path, destination_path, package):
+        """ POST to Arkivum with information about the newly stored Package. """
+        if package is None:
+            return
+
+        # Get size, checksum, checksum algorithm (md5sum), compression algorithm
+        # TODO munge this properly
+        checksum = utils.generate_checksum(staging_path, 'md5')
+        payload = {
+            'size': str(os.path.getsize(staging_path)),
+            'checksum': checksum.hexdigest(),
+            'checksumAlgorithm': 'md5',
+            'compressionAlgorithm': '',
+        }
+
+        # POST to Arkivum host/api/2/files/release/relative_path
+        relative_path = destination_path.replace(self.space.path, '', 1)
+        url = 'https://' + self.host + '/api/2/files/release' + relative_path
+        # FIXME Arkivum URL does not actually exist yet
+        response = requests.post(url, data=payload, verify=False)
+        if response.status_code != 200:
+            logging.warning('Arkivum responded with %s: %s', response.status_code, response.text)
+            raise StorageException('Unable to notify Arkivum of %s', package)
+        # Response has request ID for polling status
+        try:
+            response_json = response.json()
+        except json.JSONDecodeError:
+            raise StorageException("Could not get request ID from Arkivum's response %s", response.text)
+        request_id = response_json['id']
+
+        # Store request ID in misc_attributes
+        package.misc_attributes.update({'request_id': request_id})
+        package.save()
+
+        # TODO Uncompressed: Post info about bag (really only support AIPs)
 
     def update_package_status(self, package):
         pass

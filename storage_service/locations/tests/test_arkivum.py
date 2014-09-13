@@ -14,6 +14,7 @@ class TestArkivum(TestCase):
 
     def setUp(self):
         self.arkivum_object = models.Arkivum.objects.all()[0]
+        self.package = models.Package.objects.all()[0]
 
     def test_has_required_attributes(self):
         assert self.arkivum_object.host
@@ -43,3 +44,12 @@ class TestArkivum(TestCase):
         shutil.rmtree('/mnt/arkivum/test')
 
         # TODO test folder
+
+    # @vcr.use_cassette('locations/fixtures/vcr_cassettes/arkivum_post_move_from_ss.yaml')
+    def test_post_move_from_ss(self):
+        # POST to Arkivum about file
+        open('unittest.txt', 'w').write('test file\n')
+        self.arkivum_object.post_move_from_storage_service('unittest.txt', self.package.full_path, self.package)
+        assert self.package.misc_attributes['request_id']
+        # Cleanup
+        os.remove('unittest.txt')
