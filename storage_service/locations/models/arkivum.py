@@ -43,7 +43,14 @@ class Arkivum(models.Model):
         return {'directories': [], 'entries': []}
 
     def delete_path(self, delete_path):
-        pass
+        # Can this be done by just deleting the file on disk?
+        # TODO folders
+        url = url = 'https://' + self.host + '/files/' + delete_path
+        print 'url', url
+        response = requests.delete(url, verify=False)
+        print 'response', response
+        if response.status_code != 204:
+            raise StorageException('Unable to delete %s', delete_path)
 
     def move_to_storage_service(self, src_path, dest_path, dest_space):
         """ Moves src_path to dest_space.staging_path/dest_path. """
