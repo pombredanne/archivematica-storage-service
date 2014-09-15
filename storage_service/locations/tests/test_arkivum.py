@@ -26,7 +26,23 @@ class TestArkivum(TestCase):
         assert response['directories'] == []
         assert response['entries'] == []
 
-    @vcr.use_cassette('locations/fixtures/vcr_cassettes/arkivum_move_from_ss.yaml')
+    @vcr.use_cassette('locations/fixtures/vcr_cassettes/arkivum_delete.yaml')
+    def test_delete(self):
+        # Verify exists
+        url = 'https://' + self.arkivum_object.host + '/files/ts'
+        response = requests.get(url, verify=False)
+        assert 'unittest.txt' in [x['name'] for x in response.json()['files']]
+        # Delete file
+        self.arkivum_object.delete_path('/ts/unittest.txt')
+        # Verify deleted
+        url = 'https://' + self.arkivum_object.host + '/files/ts'
+        response = requests.get(url, verify=False)
+        assert 'unittest.txt' not in [x['name'] for x in response.json()['files']]
+
+        # Delete folder
+        # self.arkivum_object.delete_path('/ts/test/')
+        # Verify deleted
+
     def test_move_from_ss(self):
         # Create test.txt
         open('unittest.txt', 'w').write('test file\n')
