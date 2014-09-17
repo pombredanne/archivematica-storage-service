@@ -16,6 +16,7 @@ from common import utils
 # This module, alphabetical
 from . import StorageException
 from location import Location
+from package import Package
 
 
 class Arkivum(models.Model):
@@ -126,3 +127,28 @@ class Arkivum(models.Model):
 
     def update_package_status(self, package):
         pass
+        # Get local copy
+        local_path = package.fetch_local_path()
+        # If no request ID, try POSTing to Arkivum again
+        if 'request_id' not in package.misc_attributes:
+            self.post_move_from_storage_service(local_path, package.full_path, package)
+        # If still no request ID, cannot check status
+        if 'request_id' not in package.misc_attributes:
+            return (None, 'Unable to contact Arkivum')
+
+        # Ask Arkivum for replication status
+        url = 'https://' + self.host + '/api/2/files/release/' + package.misc_attributes['request_id']
+        response = requests.get(url, verify=False)
+
+        if response.status_code != 200:
+            return (None, 'Response from Arkivum server was {}'.format(response))
+
+        # Look for ['fileInformation']['replicationState'] == 'green'
+        resp_json = response.json()
+        replication = resp_json['fileInformation'].get('replicationState')
+        if replication == 'green':
+            # Set status to UPLOADED
+            package.status = Package.UPLOADED
+            package.save()
+
+        return (package.status, None)
