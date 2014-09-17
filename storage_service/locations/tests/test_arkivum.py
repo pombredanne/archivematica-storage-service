@@ -22,9 +22,9 @@ class TestArkivum(TestCase):
         assert bool(self.arkivum_object.remote_user) == bool(self.arkivum_object.remote_name)
 
     def test_browse(self):
-        response = self.arkivum_object.browse('/')
-        assert response['directories'] == []
-        assert response['entries'] == []
+        response = self.arkivum_object.browse('/mnt/arkivum/')
+        assert response['directories'] == ['aips', 'ts']
+        assert response['entries'] == ['aips', 'test.txt', 'ts']
 
     @vcr.use_cassette('locations/fixtures/vcr_cassettes/arkivum_delete.yaml')
     def test_delete(self):

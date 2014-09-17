@@ -2,6 +2,7 @@
 import errno
 import logging
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -438,6 +439,59 @@ class Space(models.Model):
                 directories.append(name)
                 properties[name]['object count'] = self._count_objects_in_directory(full_path)
         return {'directories': directories, 'entries': entries, 'properties': properties}
+
+    def _browse_ssh(self, path, ssh_key=None):
+        """
+        Returns browse results for a ssh (rsync) accessible space.
+
+        Properties provided:
+        None
+
+        :param path: Path to query, including user & hostname. E.g. user@host:/path/to/browse/  Must end in with / to browse directories.
+        :param ssh_key: Path to the SSH key on disk. If None, will use default.
+        :return: See docstring for Space.browse
+        """
+        if ssh_key is None:
+            ssh_key = '/var/lib/archivematica/.ssh/id_rsa'
+
+        # Get entries
+        command = [
+            'rsync',
+            '--protect-args',
+            '--list-only',
+            '--exclude', '.*',  # Ignore hidden files
+            '--rsh', 'ssh -i ' + ssh_key,  # Specify identify file
+            path]
+        LOGGER.info('rsync list command: %s', command)
+        LOGGER.debug('"%s"', '" "'.join(command))  # For copying to shell
+        try:
+            output = subprocess.check_output(command)
+        except Exception as e:
+            LOGGER.warning("rsync list failed: %s", e, exc_info=True)
+            entries = []
+            directories = []
+        else:
+            output = output.splitlines()
+            # Output is lines in format:
+            # <type><permissions>  <size>  <date> <time> <path>
+            # Eg: drwxrws---          4,096 2015/03/02 17:05:20 tmp
+            # Eg: -rw-r--r--            201 2013/05/13 13:26:48 LICENSE.md
+            # Eg: lrwxrwxrwx             78 2015/02/19 12:13:40 sharedDirectory
+            # Parse out the path and type
+            regex = r'^(?P<type>.).{9} +[\d,]+ ..../../.. ..:..:.. (?P<name>.*)$'
+            matches = [re.match(regex, e) for e in output]
+            # Take the last entry. Ignore empty lines and '.'
+            entries = [e.group('name') for e in matches
+                if e and e.group('name') != '.']
+            # Only items whose type is not '-'. Links count as dirs.
+            directories = [e.group('name') for e in matches
+                if e and e.group('name') != '.' and e.group('type') != '-']
+
+        directories = sorted(directories, key=lambda s: s.lower())
+        entries = sorted(entries, key=lambda s: s.lower())
+        LOGGER.debug('entries: %s', entries)
+        LOGGER.debug('directories: %s', directories)
+        return {'directories': directories, 'entries': entries}
 
     def _delete_path_local(self, delete_path):
         """
