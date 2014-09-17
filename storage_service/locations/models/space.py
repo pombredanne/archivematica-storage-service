@@ -382,6 +382,28 @@ class Space(models.Model):
                 directories.append(name)
         return {'directories': directories, 'entries': entries}
 
+    def _browse_ssh(self, path, user, host, ssh_key=None):
+        if ssh_key is None:
+            ssh_key = '/var/lib/archivematica/.ssh/id_rsa'
+
+        # Get entries
+        command = 'ls -p -1 "{}"'.format(path.replace('"', '\"'))
+        ssh_command = ["ssh", "-i", ssh_key, user + "@" + host, command]
+        logging.info("ssh+ls command: {}".format(ssh_command))
+        try:
+            output = subprocess.check_output(ssh_command)
+        except Exception as e:
+            logging.warning("ssh+ls failed: {}".format(e), exc_info=True)
+            entries = []
+            directories = []
+        else:
+            entries = output.splitlines()
+            directories = [d for d in entries if d.endswith('/')]
+
+        directories = sorted(directories, key=lambda s: s.lower())
+        entries = sorted(entries, key=lambda s: s.lower())
+        return {'directories': directories, 'entries': entries}
+
     def _delete_path_local(self, delete_path):
         """
         Deletes `delete_path` in this space, assuming it is locally accessible.

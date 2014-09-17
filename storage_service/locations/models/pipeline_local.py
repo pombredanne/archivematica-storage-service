@@ -41,27 +41,7 @@ class PipelineLocalFS(models.Model):
     ]
 
     def browse(self, path):
-        user = self.remote_user
-        host = self.remote_name
-        private_ssh_key = '/var/lib/archivematica/.ssh/id_rsa'
-
-        # Get entries
-        command = 'ls -p -1 "{}"'.format(path.replace('"', '\"'))
-        ssh_command = ["ssh", "-i", private_ssh_key, user + "@" + host, command]
-        LOGGER.info("ssh+ls command: %s", ssh_command)
-        try:
-            output = subprocess.check_output(ssh_command)
-        except Exception as e:
-            LOGGER.warning("ssh+ls failed: %s", e, exc_info=True)
-            entries = []
-            directories = []
-        else:
-            entries = output.splitlines()
-            directories = [d for d in entries if d.endswith('/')]
-
-        directories = sorted(directories, key=lambda s: s.lower())
-        entries = sorted(entries, key=lambda s: s.lower())
-        return {'directories': directories, 'entries': entries}
+        return self.space._browse_ssh(path, self.remote_user, self.remote_name)
 
     def delete_path(self, delete_path):
         user = self.remote_user
