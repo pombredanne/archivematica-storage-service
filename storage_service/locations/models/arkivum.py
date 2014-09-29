@@ -6,6 +6,7 @@ import requests
 import subprocess
 
 # Core Django, alphabetical
+from django.conf import settings
 from django.db import models
 
 # Third party dependencies, alphabetical
@@ -20,6 +21,11 @@ from package import Package
 
 LOGGER = logging.getLogger(__name__)
 
+if settings.DEBUG:
+    VERIFY = False
+else:
+    VERIFY = True
+
 
 class Arkivum(models.Model):
     space = models.OneToOneField('Space', to_field='uuid')
@@ -28,9 +34,9 @@ class Arkivum(models.Model):
         help_text='Hostname of the Arkivum web instance. Eg. arkivum.example.com:8443')
     # Optionally be able to rsync
     remote_user = models.CharField(max_length=64, null=True, blank=True,
-        help_text="Username on the remote machine accessible via passwordless ssh. (Optional)")
+        help_text="Optional: Username on the remote machine accessible via passwordless ssh.")
     remote_name = models.CharField(max_length=256, null=True, blank=True,
-        help_text="Name or IP of the remote machine. (Optional)")
+        help_text="Optional: Name or IP of the remote machine.")
 
     class Meta:
         verbose_name = "Arkivum"
@@ -54,7 +60,7 @@ class Arkivum(models.Model):
         # TODO folders
         url = 'https://' + self.host + '/files/' + delete_path
         print 'url', url
-        response = requests.delete(url, verify=False)
+        response = requests.delete(url, verify=VERIFY)
         print 'response', response
         if response.status_code != 204:
             raise StorageException('Unable to delete %s', delete_path)
@@ -105,15 +111,19 @@ class Arkivum(models.Model):
             'size': str(os.path.getsize(staging_path)),
             'checksum': checksum.hexdigest(),
             'checksumAlgorithm': 'md5',
-            'compressionAlgorithm': '',
+            'compressionAlgorithm': os.path.splitext(package.current_path)[1],
         }
+        payload = json.dumps(payload)
 
         # POST to Arkivum host/api/2/files/release/relative_path
-        relative_path = destination_path.replace(self.space.path, '', 1)
-        url = 'https://' + self.host + '/api/2/files/release' + relative_path
-        # FIXME Arkivum URL does not actually exist yet
-        response = requests.post(url, data=payload, verify=False)
-        if response.status_code != 200:
+        relative_path = os.path.relpath(destination_path, self.space.path)
+        url = 'https://' + self.host + '/api/2/files/release/' + relative_path
+        logging.info('URL: %s, Payload: %s', url, payload)
+
+        response = requests.post(url, headers={'Content-Type': 'application/json'}, data=payload, verify=VERIFY)
+
+        logging.info('Response: %s, Response text: %s', response.status_code, response.text)
+        if response.status_code not in (requests.codes.ok, requests.codes.accepted):
             logging.warning('Arkivum responded with %s: %s', response.status_code, response.text)
             raise StorageException('Unable to notify Arkivum of %s', package)
         # Response has request ID for polling status
@@ -130,11 +140,11 @@ class Arkivum(models.Model):
         # TODO Uncompressed: Post info about bag (really only support AIPs)
 
     def update_package_status(self, package):
-        # Get local copy
-        local_path = package.fetch_local_path()
         LOGGER.info('Package status: %s', package.status)
         # If no request ID, try POSTing to Arkivum again
         if 'request_id' not in package.misc_attributes:
+            # Get local copy
+            local_path = package.fetch_local_path()
             self.post_move_from_storage_service(local_path, package.full_path, package)
         # If still no request ID, cannot check status
         if 'request_id' not in package.misc_attributes:
@@ -144,15 +154,15 @@ class Arkivum(models.Model):
         url = 'https://' + self.host + '/api/2/files/release/' + package.misc_attributes['request_id']
         LOGGER.info('URL: %s', url)
 
-        response = requests.get(url, verify=False)
+        response = requests.get(url, verify=VERIFY)
 
         LOGGER.info('Response: %s, Response text: %s', response.status_code, response.text)
         if response.status_code != 200:
             return (None, 'Response from Arkivum server was {}'.format(response))
 
         # Look for ['fileInformation']['replicationState'] == 'green'
-        resp_json = response.json()
-        replication = resp_json['fileInformation'].get('replicationState')
+        response_json = response.json()
+        replication = response_json['fileInformation'].get('replicationState')
         if replication == 'green':
             # Set status to UPLOADED
             package.status = Package.UPLOADED
