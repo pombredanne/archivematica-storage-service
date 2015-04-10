@@ -64,17 +64,40 @@ class Swift(models.Model):
         return self._connection
 
     def browse(self, path):
+        """
+        Returns information about the files and simulated-folders in Duracloud.
+
+        See Space.browse for full documentation.
+
+        Properties provided:
+        'size': Size of the object
+        'timestamp': Last modified timestamp of the object or directory
+        """
         # Can only browse directories. Add a trailing / to make Swift happy
         if not path.endswith('/'):
             path += '/'
         _, content = self.connection.get_container(self.container, delimiter='/', prefix=path)
         # Replace path, strip trailing /, sort
-        directories = sorted([x['subdir'].replace(path, '', 1).rstrip('/') for x in content if x.get('subdir')])
-        entries = [x['name'].replace(path, '', 1) for x in content if x.get('name')]
-        if directories:
-            entries.extend(directories)
-        entries.sort()
-        return {'directories': directories, 'entries': entries}
+        entries = []
+        directories = []
+        properties = {}
+        for entry in content:
+            print entry
+            if 'subdir' in entry:  # Directories
+                basename = os.path.basename(entry['subdir'].rstrip('/'))
+                directories.append(basename)
+            elif 'name' in entry:  # Files
+                basename = os.path.basename(entry['name'])
+                properties[basename] = {
+                    'size': entry['bytes'],
+                    'timestamp': entry['last_modified'],
+                }
+            else:
+                # Error
+                continue
+            entries.append(basename)
+
+        return {'directories': sorted(directories, key=lambda s: s.lower()), 'entries': sorted(entries, key=lambda s: s.lower()), 'properties': properties}
 
     def delete_path(self, delete_path):
         # Try to delete object
@@ -153,6 +176,7 @@ class Swift(models.Model):
                             obj=dest,
                             contents=f,
                             etag=checksum.hexdigest(),
+                            content_length=os.path.getsize(entry)
                         )
         elif os.path.isfile(source_path):
             checksum = utils.generate_checksum(source_path)
@@ -162,6 +186,7 @@ class Swift(models.Model):
                     obj=destination_path,
                     contents=f,
                     etag=checksum.hexdigest(),
+                    content_length=os.path.getsize(source_path),
                 )
         else:
             raise StorageException('%s is neither a file nor a directory, may not exist' % source_path)
