@@ -8,13 +8,27 @@ import vcr
 from locations import models
 
 
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+ARKIVUM_DIR = os.path.abspath(os.path.join(THIS_DIR, '..', 'fixtures', 'arkivum'))
+
 class TestArkivum(TestCase):
 
     fixtures = ['initial_data.json', 'arkivum.json']
 
     def setUp(self):
         self.arkivum_object = models.Arkivum.objects.all()[0]
+        self.arkivum_object.space.path = ARKIVUM_DIR
+        self.arkivum_object.space.save()
         self.package = models.Package.objects.all()[0]
+        # Create filesystem to interact with
+        os.mkdir(ARKIVUM_DIR)
+        os.mkdir(os.path.join(ARKIVUM_DIR, 'aips'))
+        os.mkdir(os.path.join(ARKIVUM_DIR, 'ts'))
+        with open(os.path.join(ARKIVUM_DIR, 'test.txt'), 'ab') as f:
+            f.write('test.txt contents')
+
+    def tearDown(self):
+        shutil.rmtree(ARKIVUM_DIR)
 
     def test_has_required_attributes(self):
         assert self.arkivum_object.host
@@ -22,9 +36,13 @@ class TestArkivum(TestCase):
         assert bool(self.arkivum_object.remote_user) == bool(self.arkivum_object.remote_name)
 
     def test_browse(self):
-        response = self.arkivum_object.browse('/mnt/arkivum/')
+        response = self.arkivum_object.browse(ARKIVUM_DIR)
+        assert response
         assert response['directories'] == ['aips', 'ts']
         assert response['entries'] == ['aips', 'test.txt', 'ts']
+        assert response['properties']['test.txt']['size'] == 17
+        assert response['properties']['aips']['object count'] == 0
+        assert response['properties']['ts']['object count'] == 0
 
     @vcr.use_cassette('locations/fixtures/vcr_cassettes/arkivum_delete.yaml')
     def test_delete(self):
@@ -39,11 +57,13 @@ class TestArkivum(TestCase):
         response = requests.get(url, verify=False)
         assert 'unittest.txt' not in [x['name'] for x in response.json()['files']]
 
+        # TODO new test
         # Delete folder
         # self.arkivum_object.delete_path('/ts/test/')
         # Verify deleted
 
     def test_move_from_ss(self):
+        # TODO add cassette
         # Create test.txt
         open('unittest.txt', 'w').write('test file\n')
         # Upload
@@ -59,7 +79,7 @@ class TestArkivum(TestCase):
         os.remove('unittest.txt')
         shutil.rmtree('/mnt/arkivum/test')
 
-        # TODO test folder
+        # TODO test folder in new test
 
     @vcr.use_cassette('locations/fixtures/vcr_cassettes/arkivum_post_move_from_ss.yaml')
     def test_post_move_from_ss(self):
@@ -71,6 +91,8 @@ class TestArkivum(TestCase):
         os.remove('unittest.txt')
 
     def test_move_to_ss(self):
+        # TODO add cassette?
+        # Add pre-verification
         # Test file
         self.arkivum_object.move_to_storage_service('/mnt/arkivum/ts/test.txt', 'folder/test.txt', None)
         assert os.path.isdir('folder')
@@ -79,6 +101,7 @@ class TestArkivum(TestCase):
         # Cleanup
         os.remove('folder/test.txt')
         os.removedirs('folder')
+        # TODO make this a new test
         # Test folder
         self.arkivum_object.move_to_storage_service('/mnt/arkivum/ts/test/', 'folder/test/', None)
         assert os.path.isdir('folder')
@@ -95,6 +118,7 @@ class TestArkivum(TestCase):
 
     # @vcr.use_cassette('locations/fixtures/vcr_cassettes/arkivum_update_package_status.yaml')
     def test_update_package_status(self):
+        # TODO add cassette
         # Setup request_id
         self.package.misc_attributes.update({'request_id': '2e75c8ad-cded-4f7e-8ac7-85627a116e39'})
         self.package.save()
